@@ -2,10 +2,11 @@ import Main from './Main';
 import socketio from "socket.io";
 import * as agent_data from '../../res/config.json';
 import * as server_data from '../../res/server_config.json';
+import Registration from './Registration';
 
 //Export this to types file
 type AgentConfig = {
-    initialised: boolean;
+    registered: boolean;
     uuid: string;
 }
 
@@ -18,10 +19,10 @@ type ServerConfig = {
 
 function loadAgentConfig(): AgentConfig {
     var json = {
-        "initialised": false,
+        "registered": false,
         "uuid": ""
     };
-    json.initialised = (<any>agent_data).initialised;
+    json.registered = (<any>agent_data).registered;
     json.uuid = (<any>agent_data).uuid;
     return json;
 }
@@ -61,7 +62,7 @@ socket.on("authenticated", function (response: boolean) {
 });
 
 function authenticated(): void {
-    if (!checkInitialised()) {
+    if (!checkRegistered()) {
         //First time Setup
         first_time_setup();
     }
@@ -71,12 +72,12 @@ function authenticated(): void {
     }
 }
 
-function checkInitialised(): boolean {
-    return agentConfig.initialised;
+function checkRegistered(): boolean {
+    return agentConfig.registered;
 }
 
 function first_time_setup() {
-
+    socket.emit("register", require("Registration").Registration.register)
 }
 
 function normal_start() {
