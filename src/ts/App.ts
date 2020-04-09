@@ -1,21 +1,11 @@
 import Main from './Main';
-import socketio from "socket.io";
+
+//types
+import { AgentConfig, ServerConfig } from "./types/Types";
+
+//json files
 import * as agent_data from '../../res/config.json';
 import * as server_data from '../../res/server_config.json';
-import Registration from './Registration';
-
-//Export this to types file
-type AgentConfig = {
-    registered: boolean;
-    uuid: string;
-}
-
-type ServerConfig = {
-    protocol: string;
-    address: string;
-    port: number;
-    secret: string;
-}
 
 function loadAgentConfig(): AgentConfig {
     var json = {
@@ -31,55 +21,51 @@ function loadServerConfig(): ServerConfig {
     var json = {
         "protocol": "",
         "address": "",
-        "port": -1,
+        "registration_port": -1,
+        "main_port":-1,
         "secret": ""
     };
     json.protocol = (<any>server_data).protocol;
-    json.address = (<any>server_data).address
-    json.port = (<any>server_data).port;
-    json.secret = (<any>server_data).secret
+    json.address = (<any>server_data).address;
+    json.registration_port = (<any>server_data).registration_port;
+    json.main_port = (<any>server_data).main_port;
+    json.secret = (<any>server_data).secret;
     return json;
 }
 
+/**
+ * 1.) Check if the agent is registered, if not, register
+ * 2.) If agent is registered, load websocket events.
+ */
+
 export let agentConfig: AgentConfig = loadAgentConfig();
 export let serverConfig: ServerConfig = loadServerConfig();
-
-const socket = socketio(`${serverConfig.protocol}://${serverConfig.address}:${serverConfig.port}`);
-connect();
-
-function connect(): void {
-    socket.emit("authenticate", serverConfig.secret);
-}
-
-socket.on("authenticated", function (response: boolean) {
-    if (response) {
-        console.log("Agent is authenticated.")
-        authenticated();
-    }
-    else {
-        console.log("Agent is unauthenticated.");
-    }
-});
-
-function authenticated(): void {
-    if (!checkRegistered()) {
-        //First time Setup
-        first_time_setup();
-    }
-    else {
-        //Normal start (default case)
-        normal_start();
-    }
-}
 
 function checkRegistered(): boolean {
     return agentConfig.registered;
 }
 
+if(!checkRegistered()) {
+    first_time_setup();
+}
+else{
+    normal_start();
+}
+
 function first_time_setup() {
-    socket.emit("register", require("Registration").Registration.register)
+    let socket : any = require('socket.io-client')(`${serverConfig.protocol}://${serverConfig.address}:${serverConfig.registration_port}`);
+    console.log("Attempting to connect to server...");
+    socket.on('connect', function() {
+        console.log("Connected to server. Sending security key to server");
+        socket.emit("authenticate", serverConfig.secret);
+        socket.on("authenticated", function () {
+            console.log("Agent has been authenticated.");
+            socket.emit("register", require("os").hostname, require("./Registration").register);
+        });
+    });
 }
 
 function normal_start() {
-    Main.main();
+    let socket : any = require('socket.io-client')(`${serverConfig.protocol}://${serverConfig.address}:${serverConfig.main_port}`);
+    Main.main(socket);
 }

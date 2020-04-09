@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": ".\\dist\\App.js",
-  "scripts": {},
+  "scripts": {
+    "start": "node ./dist/src/ts/App.js"
+  },
   "author": "CryosisOS",
   "license": "ISC",
   "dependencies": {
     "@types/node": "^12.12.21",
     "@types/socket.io": "^2.1.4",
     "socket.io": "^2.3.0",
+    "socket.io-client": "^2.3.0",
     "typescript": "^3.8.3",
     "yargs": "^15.3.1"
   }
